@@ -1,0 +1,162 @@
+.list-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 16px 80px;
+}
+
+.list-header {
+  padding: 8px 2px 18px;
+}
+
+.list-header h1 {
+  font-size: 26px;
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+}
+
+.list-subtitle {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+.list-card {
+  background: #fff;
+  border: 1px solid #e6eaf0;
+  border-radius: 16px;
+  padding: 16px 16px 12px;
+  text-align: left;
+  box-shadow: 0 3px 10px rgba(16, 24, 40, 0.04);
+}
+
+.list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff7db8, #bf7bff);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.author {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.date {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #8b93a1;
+}
+
+.post-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  color: #111827;
+  line-height: 1.38;
+}
+
+.post-body {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.52;
+  font-size: 14px;
+}
+
+.card-actions {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #edf0f5;
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.action-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.meta {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #8b93a1;
+}
+
+.floating-write-button {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  right: 24px;
+  bottom: 28px;
+  width: 56px;
+  height: 56px;
+  color: #fff;
+  font-size: 32px;
+  line-height: 1;
+  text-decoration: none;
+  border-radius: 50%;
+  background: #111827;
+  box-shadow: 0 12px 24px rgba(17, 24, 39, 0.28);
+}
+
+.floating-write-button-icon {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 640px) {
+  .list-page {
+    padding-top: 20px;
+  }
+
+  .list-header h1 {
+    font-size: 22px;
+  }
+
+  .meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .floating-write-button {
+    right: 16px;
+    bottom: 20px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .floating-write-button-icon {
+    width: 22px;
+    height: 22px;
+  }
+}

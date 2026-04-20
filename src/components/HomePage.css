@@ -1,0 +1,24 @@
+.home-page {
+  max-width: 800px;
+  margin: 80px auto;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.home-page h1 {
+  margin-bottom: 10px;
+}
+
+.home-page p {
+  margin-bottom: 20px;
+  color: #657080;
+}
+
+.home-page a {
+  display: inline-block;
+  text-decoration: none;
+  background: #111827;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+}
