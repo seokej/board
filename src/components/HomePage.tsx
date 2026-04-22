@@ -8,6 +8,8 @@ function HomePage() {
         목록 화면은 <code>/list</code> 경로에서 확인할 수 있어요.
       </p>
       <a href="/list">/list 이동</a>
+      <a href="/signup">/signup 이동</a>
+      <a href="/signin">/signin 이동</a>
     </main>
   )
 }
