@@ -3,35 +3,32 @@ import { supabase } from "../lib/supabase";
 import "./SigninPage.css";
 
 const SigninPage = () => {
-  const [loginId, setLoginId] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSignin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!loginId.trim() || !password.trim()) {
-      alert("아이디와 비밀번호를 입력해 주세요.");
+    if (!email.trim() || !password.trim()) {
+      alert("이메일과 비밀번호를 입력해 주세요.");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      const { data, error } = await supabase
-        .from("users")
-        .select("id,login_id,nickname")
-        .eq("login_id", loginId.trim())
-        .eq("password", password.trim())
-        .single();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password.trim(),
+      });
 
       if (error) throw error;
-      localStorage.setItem("board_user", JSON.stringify(data));
 
       alert("로그인되었습니다.");
-      window.location.href = "/write";
+      window.location.href = "/list";
     } catch (error) {
       console.error(error);
-      alert("로그인에 실패했습니다. 계정 정보를 확인해 주세요.");
+      alert("로그인에 실패했습니다. 이메일·비밀번호와 이메일 인증 여부를 확인해 주세요.");
     } finally {
       setIsSubmitting(false);
     }
@@ -46,12 +43,13 @@ const SigninPage = () => {
 
       <form className="signin-form" onSubmit={handleSignin}>
         <label>
-          아이디(login_id)
+          이메일
           <input
-            type="text"
-            value={loginId}
-            onChange={(e) => setLoginId(e.target.value)}
-            placeholder="아이디를 입력하세요"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
           />
         </label>
 
@@ -62,6 +60,7 @@ const SigninPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호를 입력하세요"
+            autoComplete="current-password"
           />
         </label>
 

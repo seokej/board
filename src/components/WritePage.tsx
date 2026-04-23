@@ -3,9 +3,9 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 type CurrentUser = {
-  id: number;
-  login_id: string;
+  id: string;
   nickname: string;
+  email: string;
 };
 
 const WritePage = () => {
@@ -16,39 +16,33 @@ const WritePage = () => {
 
   useEffect(() => {
     const loadCurrentUser = async () => {
-      const savedUser = localStorage.getItem("board_user");
-      if (!savedUser) {
-        setIsLoadingUser(false);
-        return;
-      }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      let loginIdCandidate = "";
-      try {
-        const parsed = JSON.parse(savedUser) as { login_id?: string };
-        loginIdCandidate = parsed.login_id ?? "";
-      } catch (error) {
-        console.error(error);
-      }
-
-      if (!loginIdCandidate) {
+      if (!session?.user) {
         setIsLoadingUser(false);
         return;
       }
 
       const { data, error } = await supabase
         .from("users")
-        .select("id,login_id,nickname")
-        .eq("login_id", loginIdCandidate)
+        .select("id,nickname")
+        .eq("id", session.user.id)
         .single();
 
       if (error) {
         console.error(error);
-        alert("users 테이블에서 로그인 사용자를 찾지 못했습니다.");
+        alert("users 프로필을 찾지 못했습니다. 회원가입이 완료되었는지 확인해 주세요.");
         setIsLoadingUser(false);
         return;
       }
 
-      setCurrentUser(data as CurrentUser);
+      setCurrentUser({
+        id: data.id as string,
+        nickname: data.nickname as string,
+        email: session.user.email ?? "",
+      });
       setIsLoadingUser(false);
     };
 
@@ -65,7 +59,7 @@ const WritePage = () => {
         return;
       }
       if (!currentUser) {
-        alert("로그인 사용자 정보를 찾을 수 없어 글을 작성할 수 없습니다.");
+        alert("로그인 후 프로필이 있어야 글을 작성할 수 있습니다.");
         return;
       }
 
@@ -85,7 +79,8 @@ const WritePage = () => {
         .single();
 
       if (error) throw error;
-      window.location.href = `/post/${post.id}`;
+      // window.location.href = `/post/${post.id}`;
+      window.location.href = `/list`;
     } catch (error) {
       console.error(error);
       alert("게시글 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.");
@@ -105,7 +100,7 @@ const WritePage = () => {
             type="text"
             value={
               currentUser
-                ? `${currentUser.nickname} (${currentUser.login_id})`
+                ? `${currentUser.nickname} (${currentUser.email})`
                 : ""
             }
             placeholder={

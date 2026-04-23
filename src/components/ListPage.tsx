@@ -6,7 +6,8 @@ type Post = {
   id: number;
   title: string;
   body: string;
-  author: string;
+  /** users.nickname (조회 실패 시 대체 문구) */
+  nickname: string;
   date: string;
   likes: number;
   comments: number;
@@ -17,42 +18,38 @@ type PostRow = {
   id: number;
   title: string;
   content: string;
-  author_id: number;
+  author_id: string | null;
   created_at: string;
 };
 
 type UserRow = {
-  id: number;
+  id: string;
   nickname: string;
 };
 
-type SessionUser = {
-  id: number;
-};
+/** DB·구버전 데이터에 null / 문자열 "null" 등이 섞이면 .in("id", …)에서 uuid 파싱 오류(22P02)가 납니다. */
+function isUuidString(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (!v || v.toLowerCase() === "null") return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+}
 
 function ListPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [likingPostId, setLikingPostId] = useState<number | null>(null);
   const [likedPostIds, setLikedPostIds] = useState<number[]>([]);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const hasRedirectedRef = useRef(false);
 
-  const getSessionUserId = () => {
-    const savedUser = localStorage.getItem("board_user");
-    if (!savedUser) return null;
-
-    try {
-      const parsedUser = JSON.parse(savedUser) as SessionUser;
-      return Number(parsedUser.id) || null;
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  };
-
   const handleLike = async (postId: number) => {
-    const sessionUserId = getSessionUserId();
-    if (!sessionUserId) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const uid = session?.user?.id ?? null;
+    if (!uid) {
       alert("로그인 후 좋아요를 누를 수 있습니다.");
       return;
     }
@@ -68,7 +65,7 @@ function ListPage() {
           .from("post_like")
           .delete()
           .eq("post_id", postId)
-          .eq("user_id", sessionUserId);
+          .eq("user_id", uid);
 
         if (error) throw error;
 
@@ -83,7 +80,7 @@ function ListPage() {
       } else {
         const { error } = await supabase.from("post_like").insert({
           post_id: postId,
-          user_id: sessionUserId,
+          user_id: uid,
         });
 
         if (error) throw error;
@@ -115,21 +112,30 @@ function ListPage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("board_user");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     window.location.href = "/";
   };
 
   useEffect(() => {
     const loadPosts = async () => {
-      const sessionUserId = getSessionUserId();
-      if (!sessionUserId) {
-        if (hasRedirectedRef.current) return;
-        hasRedirectedRef.current = true;
-        alert("로그인이 필요합니다");
-        window.location.href = "/signin";
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          alert("로그인이 필요합니다");
+          window.location.href = "/signin";
+        }
+        setSessionUserId(null);
+        setAuthChecked(true);
+        setIsLoading(false);
         return;
       }
+
+      setSessionUserId(session.user.id);
 
       const { data: postRows, error: postError } = await supabase
         .from("post")
@@ -139,13 +145,16 @@ function ListPage() {
       if (postError) {
         console.error(postError);
         setIsLoading(false);
+        setAuthChecked(true);
         return;
       }
 
       const safePostRows = (postRows ?? []) as PostRow[];
-      const authorIds = [...new Set(safePostRows.map((row) => row.author_id))];
+      const authorIds = [
+        ...new Set(safePostRows.map((row) => row.author_id).filter(isUuidString)),
+      ];
 
-      let userMap: Record<number, string> = {};
+      let userMap: Record<string, string> = {};
       if (authorIds.length > 0) {
         const { data: userRows, error: userError } = await supabase
           .from("users")
@@ -160,7 +169,7 @@ function ListPage() {
               acc[user.id] = user.nickname;
               return acc;
             },
-            {} as Record<number, string>,
+            {} as Record<string, string>,
           );
         }
       }
@@ -184,33 +193,40 @@ function ListPage() {
         {} as Record<number, number>,
       );
 
-      const currentUserId = getSessionUserId();
+      const currentUserId = session.user.id;
       const myLikedPostIds =
-        currentUserId === null
-          ? []
-          : ((likeRows ?? []) as Array<{ post_id: number; user_id?: number }>)
-              .filter((row) => row.user_id === currentUserId)
-              .map((row) => row.post_id);
+        (likeRows ?? []) as Array<{ post_id: number; user_id?: string }>;
+      const filteredLiked = myLikedPostIds
+        .filter((row) => row.user_id === currentUserId)
+        .map((row) => row.post_id);
 
       const mappedPosts: Post[] = safePostRows.map((row) => ({
         id: row.id,
         title: row.title,
         body: row.content,
-        author: userMap[row.author_id] ?? `user#${row.author_id}`,
+        nickname:
+          row.author_id && isUuidString(row.author_id)
+            ? (userMap[row.author_id] ?? `user#${row.author_id}`)
+            : "알 수 없는 작성자",
         date: new Date(row.created_at).toLocaleDateString("ko-KR"),
         likes: likeCountMap[row.id] ?? 0,
         comments: 0,
       }));
 
       setPosts(mappedPosts);
-      setLikedPostIds(myLikedPostIds);
+      setLikedPostIds(filteredLiked);
       setIsLoading(false);
+      setAuthChecked(true);
     };
 
     void loadPosts();
   }, []);
 
-  if (!getSessionUserId()) {
+  if (!authChecked) {
+    return null;
+  }
+
+  if (!sessionUserId) {
     return null;
   }
 
@@ -222,7 +238,7 @@ function ListPage() {
           <button
             type="button"
             className="list-logout-button"
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
           >
             로그아웃
           </button>
@@ -243,10 +259,10 @@ function ListPage() {
           <article key={post.id} className="list-card">
             <div className="card-head">
               <div className="avatar" aria-hidden="true">
-                {post.author[0].toUpperCase()}
+                {(post.nickname.trim()[0] ?? "?").toUpperCase()}
               </div>
               <div>
-                <p className="author">{post.author}</p>
+                <p className="author">{post.nickname}</p>
                 <p className="date">{post.date}</p>
               </div>
             </div>
